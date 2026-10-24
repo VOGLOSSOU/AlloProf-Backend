@@ -1,0 +1,102 @@
+erDiagram
+  USERS ||--o| CLIENTS : "est"
+  USERS ||--o| PROFESSEURS : "est"
+  CLIENTS ||--o{ DEMANDES : "soumet"
+  VILLES ||--o{ DEMANDES : "ciblee par"
+  SPECIALITES ||--o{ DEMANDES : "concerne"
+  PROFESSEURS ||--o{ PROFESSEUR_SPECIALITES : "enseigne"
+  SPECIALITES ||--o{ PROFESSEUR_SPECIALITES : "est enseignee"
+  DEMANDES ||--o{ ASSIGNATIONS : "donne lieu a"
+  PROFESSEURS ||--o{ ASSIGNATIONS : "effectue"
+  ASSIGNATIONS ||--|{ CRENEAUX_HEBDO : "planning type"
+  ASSIGNATIONS ||--o{ SEANCES : "genere"
+  ASSIGNATIONS ||--o{ PAIEMENTS : "donne lieu a"
+
+  USERS {
+    bigint id PK
+    enum role
+    string nom
+    string prenom
+    string email UK
+    string telephone
+    string password_hash
+    bool must_change_password
+    enum statut
+  }
+  CLIENTS {
+    bigint user_id PK
+    string adresse
+  }
+  PROFESSEURS {
+    bigint user_id PK
+    text bio
+    string niveaux_enseignes
+    enum statut
+  }
+  VILLES {
+    int id PK
+    string nom UK
+    bool est_active
+  }
+  SPECIALITES {
+    int id PK
+    string libelle UK
+  }
+  PROFESSEUR_SPECIALITES {
+    bigint professeur_id PK
+    int specialite_id PK
+  }
+  DEMANDES {
+    bigint id PK
+    bigint client_id FK
+    int ville_id FK
+    int specialite_id FK
+    enum type_beneficiaire
+    text description
+    decimal budget
+    set jours_souhaites
+    text caracteristiques_prof
+    enum statut
+    bigint traitee_par FK
+    text note_admin
+  }
+  ASSIGNATIONS {
+    bigint id PK
+    bigint demande_id FK
+    bigint professeur_id FK
+    date date_debut
+    date date_fin
+    decimal tarif_client
+    decimal tarif_prof
+    enum statut
+  }
+  CRENEAUX_HEBDO {
+    bigint id PK
+    bigint assignation_id FK
+    tinyint jour_semaine
+    time heure_debut
+    time heure_fin
+  }
+  SEANCES {
+    bigint id PK
+    bigint assignation_id FK
+    date date_seance
+    time heure_debut
+    time heure_fin
+    char code_secret
+    tinyint tentatives_echouees
+    enum statut
+    datetime date_validation
+  }
+  PAIEMENTS {
+    bigint id PK
+    bigint assignation_id FK
+    enum sens
+    tinyint mois
+    smallint annee
+    decimal montant
+    enum mode
+    string reference
+    enum statut
+    datetime date_paiement
+  }

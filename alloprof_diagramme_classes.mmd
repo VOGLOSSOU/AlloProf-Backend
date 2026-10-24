@@ -1,0 +1,96 @@
+classDiagram
+direction TB
+
+class Utilisateur {
+  <<abstract>>
+  +id
+  +nom
+  +prenom
+  +email
+  +telephone
+  +motDePasseHash
+  +statut
+  +mustChangePassword
+  +seConnecter()
+}
+class Administrateur {
+}
+class Client {
+  +adresse
+}
+class Professeur {
+  +bio
+  +niveauxEnseignes
+  +statut
+}
+class Ville {
+  +id
+  +nom
+  +estActive
+}
+class Specialite {
+  +id
+  +libelle
+}
+class DemandeProf {
+  +id
+  +typeBeneficiaire
+  +description
+  +budget
+  +joursSouhaites
+  +caracteristiquesProf
+  +statut
+  +noteAdmin
+  +dateCreation
+  +annuler()
+}
+class Assignation {
+  +id
+  +dateDebut
+  +dateFin
+  +tarifClient
+  +tarifProf
+  +statut
+  +genererSeances(mois)
+}
+class CreneauHebdo {
+  +jourSemaine
+  +heureDebut
+  +heureFin
+}
+class Seance {
+  +id
+  +date
+  +heureDebut
+  +heureFin
+  +codeSecret
+  +tentativesEchouees
+  +statut
+  +dateValidation
+  +validerPresence(code)
+}
+class Paiement {
+  +id
+  +sens
+  +mois
+  +annee
+  +montant
+  +mode
+  +reference
+  +statut
+  +datePaiement
+}
+
+Utilisateur <|-- Administrateur
+Utilisateur <|-- Client
+Utilisateur <|-- Professeur
+Client "1" --> "0..*" DemandeProf : soumet
+Administrateur "1" --> "0..*" DemandeProf : traite
+Ville "1" --> "0..*" DemandeProf : ciblee par
+Specialite "1" --> "0..*" DemandeProf : concerne
+Professeur "0..*" -- "1..*" Specialite : enseigne
+DemandeProf "1" --> "0..*" Assignation : donne lieu a
+Professeur "1" --> "0..*" Assignation : effectue
+Assignation "1" *-- "1..*" CreneauHebdo : planning type
+Assignation "1" *-- "0..*" Seance : genere
+Assignation "1" --> "0..*" Paiement : donne lieu a
