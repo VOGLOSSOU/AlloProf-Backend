@@ -20,8 +20,22 @@ class Client {
 }
 class Professeur {
   +bio
-  +niveauxEnseignes
-  +statut
+  +disponibilite
+}
+class JetonUtilisateur {
+  +type
+  +tokenHash
+  +tentatives
+  +expiresAt
+  +usedAt
+  +consommer(jeton)
+}
+class Notification {
+  +type
+  +titre
+  +message
+  +data
+  +luLe
 }
 class Ville {
   +id
@@ -31,11 +45,17 @@ class Ville {
 class Specialite {
   +id
   +libelle
+  +estActive
+}
+class Niveau {
+  +id
+  +libelle
+  +ordre
+  +estActive
 }
 class DemandeProf {
   +id
   +typeBeneficiaire
-  +niveauScolaire
   +quartier
   +description
   +budget
@@ -50,6 +70,7 @@ class Assignation {
   +id
   +dateDebut
   +dateFin
+  +uniteTarif
   +tarifClient
   +tarifProf
   +statut
@@ -66,10 +87,12 @@ class Seance {
   +heureDebut
   +heureFin
   +codeSecret
+  +codeGenereLe
   +tentativesEchouees
   +statut
   +motifAnnulation
   +dateValidation
+  +genererCode()
   +validerPresence(code)
 }
 class Paiement {
@@ -88,12 +111,16 @@ class Paiement {
 Utilisateur <|-- Administrateur
 Utilisateur <|-- Client
 Utilisateur <|-- Professeur
+Utilisateur "1" *-- "0..*" JetonUtilisateur : possede
+Utilisateur "1" *-- "0..*" Notification : recoit
 Client "1" --> "0..*" DemandeProf : soumet
 Administrateur "1" --> "0..*" DemandeProf : traite
 Ville "1" --> "0..*" DemandeProf : ciblee par
+Niveau "1" --> "0..*" DemandeProf : niveau requis
 DemandeProf "0..*" -- "1..*" Specialite : concerne
 Professeur "0..*" -- "1..*" Specialite : enseigne
 Professeur "0..*" -- "1..*" Ville : intervient dans
+Professeur "0..*" -- "1..*" Niveau : enseigne au niveau
 DemandeProf "1" --> "0..*" Assignation : donne lieu a
 Professeur "1" --> "0..*" Assignation : effectue
 Assignation "1" *-- "1..*" CreneauHebdo : planning type

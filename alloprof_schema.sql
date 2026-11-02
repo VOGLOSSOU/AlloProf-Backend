@@ -12,6 +12,7 @@ USE alloprof;
 -- ------------------------------------------------------------
 -- Utilisateurs : une table commune + une table de profil par role
 -- (l'administrateur n'a pas besoin de table de profil specifique)
+-- users.statut = etat du COMPTE (connexion autorisee ou non)
 -- ------------------------------------------------------------
 CREATE TABLE users (
   id                    BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -20,7 +21,7 @@ CREATE TABLE users (
   prenom                VARCHAR(100) NOT NULL,
   email                 VARCHAR(190) NOT NULL,
   telephone             VARCHAR(30)  NOT NULL,
-  password_hash         VARCHAR(255) NOT NULL,
+  password_hash         VARCHAR(255) NULL,  -- NULL tant qu'un prof invite n'a pas defini son mot de passe
   must_change_password  TINYINT(1)   NOT NULL DEFAULT 0,
   statut                ENUM('ACTIF','SUSPENDU') NOT NULL DEFAULT 'ACTIF',
   created_at            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -38,17 +39,38 @@ CREATE TABLE clients (
   CONSTRAINT fk_clients_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+-- disponibilite = le prof accepte-t-il de NOUVELLES assignations ?
+-- (distinct de users.statut qui bloque la connexion)
 CREATE TABLE professeurs (
-  user_id            BIGINT UNSIGNED NOT NULL,
-  bio                TEXT NULL,
-  niveaux_enseignes  VARCHAR(255) NULL,
-  statut             ENUM('ACTIF','INACTIF') NOT NULL DEFAULT 'ACTIF',
+  user_id        BIGINT UNSIGNED NOT NULL,
+  bio            TEXT NULL,
+  disponibilite  ENUM('DISPONIBLE','INDISPONIBLE') NOT NULL DEFAULT 'DISPONIBLE',
   PRIMARY KEY (user_id),
   CONSTRAINT fk_professeurs_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ------------------------------------------------------------
+-- Jetons a usage unique : invitation des profs, reset mot de passe, OTP
+-- On ne stocke que l'empreinte (SHA-256) du jeton, jamais le jeton en clair
+-- ------------------------------------------------------------
+CREATE TABLE user_tokens (
+  id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id     BIGINT UNSIGNED NOT NULL,
+  type        ENUM('INVITATION','RESET_PASSWORD','OTP') NOT NULL,
+  token_hash  CHAR(64) NOT NULL,
+  tentatives  TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  expires_at  DATETIME NOT NULL,
+  used_at     DATETIME NULL,
+  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_user_tokens_hash (token_hash),
+  KEY idx_user_tokens_user (user_id, type),
+  CONSTRAINT fk_user_tokens_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- ------------------------------------------------------------
 -- Referentiels geres par l'admin
+-- On ne supprime pas un referentiel utilise : on le desactive (est_active = 0)
 -- ------------------------------------------------------------
 CREATE TABLE villes (
   id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -59,21 +81,33 @@ CREATE TABLE villes (
 ) ENGINE=InnoDB;
 
 CREATE TABLE specialites (
-  id       INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  libelle  VARCHAR(120) NOT NULL,
+  id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  libelle     VARCHAR(120) NOT NULL,
+  est_active  TINYINT(1)   NOT NULL DEFAULT 1,
   PRIMARY KEY (id),
   UNIQUE KEY uq_specialites_libelle (libelle)
 ) ENGINE=InnoDB;
 
+-- ordre permet de trier / comparer les niveaux (CP < CE1 < ... < Terminale < Licence)
+CREATE TABLE niveaux (
+  id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  libelle     VARCHAR(100) NOT NULL,
+  ordre       SMALLINT UNSIGNED NOT NULL,
+  est_active  TINYINT(1) NOT NULL DEFAULT 1,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_niveaux_libelle (libelle),
+  KEY idx_niveaux_ordre (ordre)
+) ENGINE=InnoDB;
+
 -- ------------------------------------------------------------
--- Associations Professeurs : Specialites & Villes d'intervention
+-- Associations Professeurs : Specialites, Villes, Niveaux
 -- ------------------------------------------------------------
 CREATE TABLE professeur_specialites (
   professeur_id  BIGINT UNSIGNED NOT NULL,
   specialite_id  INT UNSIGNED    NOT NULL,
   PRIMARY KEY (professeur_id, specialite_id),
   CONSTRAINT fk_ps_prof FOREIGN KEY (professeur_id) REFERENCES professeurs (user_id) ON DELETE CASCADE,
-  CONSTRAINT fk_ps_spec FOREIGN KEY (specialite_id) REFERENCES specialites (id) ON DELETE CASCADE
+  CONSTRAINT fk_ps_spec FOREIGN KEY (specialite_id) REFERENCES specialites (id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
 CREATE TABLE professeur_villes (
@@ -81,7 +115,15 @@ CREATE TABLE professeur_villes (
   ville_id       INT UNSIGNED    NOT NULL,
   PRIMARY KEY (professeur_id, ville_id),
   CONSTRAINT fk_pv_prof  FOREIGN KEY (professeur_id) REFERENCES professeurs (user_id) ON DELETE CASCADE,
-  CONSTRAINT fk_pv_ville FOREIGN KEY (ville_id)      REFERENCES villes (id)       ON DELETE CASCADE
+  CONSTRAINT fk_pv_ville FOREIGN KEY (ville_id)      REFERENCES villes (id)       ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+CREATE TABLE professeur_niveaux (
+  professeur_id  BIGINT UNSIGNED NOT NULL,
+  niveau_id      INT UNSIGNED    NOT NULL,
+  PRIMARY KEY (professeur_id, niveau_id),
+  CONSTRAINT fk_pn_prof   FOREIGN KEY (professeur_id) REFERENCES professeurs (user_id) ON DELETE CASCADE,
+  CONSTRAINT fk_pn_niveau FOREIGN KEY (niveau_id)     REFERENCES niveaux (id)          ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
 -- ------------------------------------------------------------
@@ -92,7 +134,7 @@ CREATE TABLE demandes (
   client_id             BIGINT UNSIGNED NOT NULL,
   ville_id              INT UNSIGNED    NOT NULL,
   quartier              VARCHAR(120)    NULL,
-  niveau_scolaire       VARCHAR(100)    NOT NULL,
+  niveau_id             INT UNSIGNED    NOT NULL,
   type_beneficiaire     ENUM('ENFANT','SOI_MEME') NOT NULL,
   description           TEXT NOT NULL,
   budget                DECIMAL(12,2) NULL,
@@ -110,6 +152,7 @@ CREATE TABLE demandes (
   KEY idx_demandes_ville (ville_id),
   CONSTRAINT fk_demandes_client     FOREIGN KEY (client_id)   REFERENCES clients (user_id),
   CONSTRAINT fk_demandes_ville      FOREIGN KEY (ville_id)    REFERENCES villes (id),
+  CONSTRAINT fk_demandes_niveau     FOREIGN KEY (niveau_id)   REFERENCES niveaux (id),
   CONSTRAINT fk_demandes_admin      FOREIGN KEY (traitee_par) REFERENCES users (id),
   CONSTRAINT chk_demandes_budget    CHECK (budget IS NULL OR budget >= 0)
 ) ENGINE=InnoDB;
@@ -120,11 +163,12 @@ CREATE TABLE demande_specialites (
   specialite_id  INT UNSIGNED    NOT NULL,
   PRIMARY KEY (demande_id, specialite_id),
   CONSTRAINT fk_ds_demande FOREIGN KEY (demande_id)    REFERENCES demandes (id)    ON DELETE CASCADE,
-  CONSTRAINT fk_ds_spec    FOREIGN KEY (specialite_id) REFERENCES specialites (id) ON DELETE CASCADE
+  CONSTRAINT fk_ds_spec    FOREIGN KEY (specialite_id) REFERENCES specialites (id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
 -- ------------------------------------------------------------
 -- Assignation : le pivot contractuel (demande + prof + tarifs)
+-- unite_tarif precise ce que couvrent tarif_client / tarif_prof
 -- La colonne generee garantit UNE SEULE assignation ACTIVE par demande
 -- ------------------------------------------------------------
 CREATE TABLE assignations (
@@ -133,6 +177,7 @@ CREATE TABLE assignations (
   professeur_id      BIGINT UNSIGNED NOT NULL,
   date_debut         DATE NOT NULL,
   date_fin           DATE NULL,
+  unite_tarif        ENUM('SEANCE','HEURE','MOIS') NOT NULL,
   tarif_client       DECIMAL(12,2) NOT NULL,
   tarif_prof         DECIMAL(12,2) NOT NULL,
   statut             ENUM('ACTIVE','SUSPENDUE','TERMINEE') NOT NULL DEFAULT 'ACTIVE',
@@ -151,6 +196,7 @@ CREATE TABLE assignations (
 
 -- ------------------------------------------------------------
 -- Planning type hebdomadaire (jour_semaine : 1 = lundi ... 7 = dimanche)
+-- Les chevauchements (meme assignation ou meme prof) sont controles par l'application
 -- ------------------------------------------------------------
 CREATE TABLE creneaux_hebdo (
   id             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -167,6 +213,9 @@ CREATE TABLE creneaux_hebdo (
 
 -- ------------------------------------------------------------
 -- Seances : chaque jour de cours reel avec son code secret d'emargement
+-- Le code n'est genere que le jour J (code_secret NULL avant) : le client
+-- ne peut donc pas transmettre les codes du mois a l'avance.
+-- tentatives_echouees : la validation est bloquee au-dela du seuil (regle applicative)
 -- ------------------------------------------------------------
 CREATE TABLE seances (
   id                   BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -174,7 +223,8 @@ CREATE TABLE seances (
   date_seance          DATE NOT NULL,
   heure_debut          TIME NOT NULL,
   heure_fin            TIME NOT NULL,
-  code_secret          CHAR(6) NOT NULL,
+  code_secret          CHAR(6) NULL,
+  code_genere_le       DATETIME NULL,
   tentatives_echouees  TINYINT UNSIGNED NOT NULL DEFAULT 0,
   statut               ENUM('PREVUE','EFFECTUEE','MANQUEE','ANNULEE') NOT NULL DEFAULT 'PREVUE',
   date_validation      DATETIME NULL,
@@ -186,7 +236,9 @@ CREATE TABLE seances (
   KEY idx_seances_date (date_seance),
   KEY idx_seances_statut (assignation_id, statut),
   CONSTRAINT fk_seances_assignation FOREIGN KEY (assignation_id) REFERENCES assignations (id),
-  CONSTRAINT chk_seances_heure CHECK (heure_fin > heure_debut)
+  CONSTRAINT chk_seances_heure      CHECK (heure_fin > heure_debut),
+  CONSTRAINT chk_seances_code       CHECK ((code_secret IS NULL) = (code_genere_le IS NULL)),
+  CONSTRAINT chk_seances_validation CHECK (statut <> 'EFFECTUEE' OR date_validation IS NOT NULL)
 ) ENGINE=InnoDB;
 
 -- ------------------------------------------------------------
@@ -212,5 +264,23 @@ CREATE TABLE paiements (
   KEY idx_paiements_statut (statut),
   CONSTRAINT fk_paiements_assignation FOREIGN KEY (assignation_id) REFERENCES assignations (id),
   CONSTRAINT chk_paiements_mois    CHECK (mois BETWEEN 1 AND 12),
-  CONSTRAINT chk_paiements_montant CHECK (montant >= 0)
+  CONSTRAINT chk_paiements_montant CHECK (montant >= 0),
+  CONSTRAINT chk_paiements_paye    CHECK (statut <> 'PAYE' OR date_paiement IS NOT NULL)
+) ENGINE=InnoDB;
+
+-- ------------------------------------------------------------
+-- Notifications in-app (nouvelle demande, assignation, seance a valider...)
+-- ------------------------------------------------------------
+CREATE TABLE notifications (
+  id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id     BIGINT UNSIGNED NOT NULL,
+  type        VARCHAR(50)  NOT NULL,
+  titre       VARCHAR(150) NOT NULL,
+  message     TEXT NULL,
+  data        JSON NULL,
+  lu_le       DATETIME NULL,
+  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_notifications_user (user_id, lu_le),
+  CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE=InnoDB;

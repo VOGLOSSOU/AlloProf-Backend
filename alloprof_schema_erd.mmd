@@ -1,14 +1,19 @@
 erDiagram
   USERS ||--o| CLIENTS : "est"
   USERS ||--o| PROFESSEURS : "est"
+  USERS ||--o{ USER_TOKENS : "possede"
+  USERS ||--o{ NOTIFICATIONS : "recoit"
   CLIENTS ||--o{ DEMANDES : "soumet"
   VILLES ||--o{ DEMANDES : "ciblee par"
+  NIVEAUX ||--o{ DEMANDES : "niveau requis"
   DEMANDES ||--o{ DEMANDE_SPECIALITES : "requiert"
   SPECIALITES ||--o{ DEMANDE_SPECIALITES : "est requise"
   PROFESSEURS ||--o{ PROFESSEUR_SPECIALITES : "enseigne"
   SPECIALITES ||--o{ PROFESSEUR_SPECIALITES : "est enseignee"
   PROFESSEURS ||--o{ PROFESSEUR_VILLES : "couvre"
   VILLES ||--o{ PROFESSEUR_VILLES : "est couverte par"
+  PROFESSEURS ||--o{ PROFESSEUR_NIVEAUX : "enseigne au niveau"
+  NIVEAUX ||--o{ PROFESSEUR_NIVEAUX : "est enseigne par"
   DEMANDES ||--o{ ASSIGNATIONS : "donne lieu a"
   PROFESSEURS ||--o{ ASSIGNATIONS : "effectue"
   ASSIGNATIONS ||--|{ CRENEAUX_HEBDO : "planning type"
@@ -33,8 +38,25 @@ erDiagram
   PROFESSEURS {
     bigint user_id PK
     text bio
-    string niveaux_enseignes
-    enum statut
+    enum disponibilite
+  }
+  USER_TOKENS {
+    bigint id PK
+    bigint user_id FK
+    enum type
+    char token_hash UK
+    tinyint tentatives
+    datetime expires_at
+    datetime used_at
+  }
+  NOTIFICATIONS {
+    bigint id PK
+    bigint user_id FK
+    string type
+    string titre
+    text message
+    json data
+    datetime lu_le
   }
   VILLES {
     int id PK
@@ -44,6 +66,13 @@ erDiagram
   SPECIALITES {
     int id PK
     string libelle UK
+    bool est_active
+  }
+  NIVEAUX {
+    int id PK
+    string libelle UK
+    smallint ordre
+    bool est_active
   }
   PROFESSEUR_SPECIALITES {
     bigint professeur_id PK
@@ -53,12 +82,16 @@ erDiagram
     bigint professeur_id PK
     int ville_id PK
   }
+  PROFESSEUR_NIVEAUX {
+    bigint professeur_id PK
+    int niveau_id PK
+  }
   DEMANDES {
     bigint id PK
     bigint client_id FK
     int ville_id FK
+    int niveau_id FK
     string quartier
-    string niveau_scolaire
     enum type_beneficiaire
     text description
     decimal budget
@@ -78,6 +111,7 @@ erDiagram
     bigint professeur_id FK
     date date_debut
     date date_fin
+    enum unite_tarif
     decimal tarif_client
     decimal tarif_prof
     enum statut
@@ -97,6 +131,7 @@ erDiagram
     time heure_debut
     time heure_fin
     char code_secret
+    datetime code_genere_le
     tinyint tentatives_echouees
     enum statut
     text motif_annulation
