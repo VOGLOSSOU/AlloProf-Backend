@@ -11,7 +11,7 @@ USE alloprof;
 
 -- ------------------------------------------------------------
 -- Utilisateurs : une table commune + une table de profil par role
--- (l'administrateur n'a pas besoin de table de profil pour l'instant)
+-- (l'administrateur n'a pas besoin de table de profil specifique)
 -- ------------------------------------------------------------
 CREATE TABLE users (
   id                    BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -19,7 +19,7 @@ CREATE TABLE users (
   nom                   VARCHAR(100) NOT NULL,
   prenom                VARCHAR(100) NOT NULL,
   email                 VARCHAR(190) NOT NULL,
-  telephone             VARCHAR(30)  NULL,
+  telephone             VARCHAR(30)  NOT NULL,
   password_hash         VARCHAR(255) NOT NULL,
   must_change_password  TINYINT(1)   NOT NULL DEFAULT 0,
   statut                ENUM('ACTIF','SUSPENDU') NOT NULL DEFAULT 'ACTIF',
@@ -27,6 +27,7 @@ CREATE TABLE users (
   updated_at            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uq_users_email (email),
+  UNIQUE KEY uq_users_telephone (telephone),
   KEY idx_users_role (role)
 ) ENGINE=InnoDB;
 
@@ -34,7 +35,7 @@ CREATE TABLE clients (
   user_id  BIGINT UNSIGNED NOT NULL,
   adresse  VARCHAR(255) NULL,
   PRIMARY KEY (user_id),
-  CONSTRAINT fk_clients_user FOREIGN KEY (user_id) REFERENCES users (id)
+  CONSTRAINT fk_clients_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE professeurs (
@@ -43,7 +44,7 @@ CREATE TABLE professeurs (
   niveaux_enseignes  VARCHAR(255) NULL,
   statut             ENUM('ACTIF','INACTIF') NOT NULL DEFAULT 'ACTIF',
   PRIMARY KEY (user_id),
-  CONSTRAINT fk_professeurs_user FOREIGN KEY (user_id) REFERENCES users (id)
+  CONSTRAINT fk_professeurs_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ------------------------------------------------------------
@@ -64,26 +65,38 @@ CREATE TABLE specialites (
   UNIQUE KEY uq_specialites_libelle (libelle)
 ) ENGINE=InnoDB;
 
+-- ------------------------------------------------------------
+-- Associations Professeurs : Specialites & Villes d'intervention
+-- ------------------------------------------------------------
 CREATE TABLE professeur_specialites (
   professeur_id  BIGINT UNSIGNED NOT NULL,
   specialite_id  INT UNSIGNED    NOT NULL,
   PRIMARY KEY (professeur_id, specialite_id),
-  CONSTRAINT fk_ps_prof FOREIGN KEY (professeur_id) REFERENCES professeurs (user_id),
-  CONSTRAINT fk_ps_spec FOREIGN KEY (specialite_id) REFERENCES specialites (id)
+  CONSTRAINT fk_ps_prof FOREIGN KEY (professeur_id) REFERENCES professeurs (user_id) ON DELETE CASCADE,
+  CONSTRAINT fk_ps_spec FOREIGN KEY (specialite_id) REFERENCES specialites (id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE professeur_villes (
+  professeur_id  BIGINT UNSIGNED NOT NULL,
+  ville_id       INT UNSIGNED    NOT NULL,
+  PRIMARY KEY (professeur_id, ville_id),
+  CONSTRAINT fk_pv_prof  FOREIGN KEY (professeur_id) REFERENCES professeurs (user_id) ON DELETE CASCADE,
+  CONSTRAINT fk_pv_ville FOREIGN KEY (ville_id)      REFERENCES villes (id)       ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ------------------------------------------------------------
--- Demande du client (le besoin, pas le contrat)
+-- Demande du client (le besoin qualifie par l'admin)
 -- ------------------------------------------------------------
 CREATE TABLE demandes (
   id                    BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   client_id             BIGINT UNSIGNED NOT NULL,
   ville_id              INT UNSIGNED    NOT NULL,
-  specialite_id         INT UNSIGNED    NOT NULL,
+  quartier              VARCHAR(120)    NULL,
+  niveau_scolaire       VARCHAR(100)    NOT NULL,
   type_beneficiaire     ENUM('ENFANT','SOI_MEME') NOT NULL,
   description           TEXT NOT NULL,
   budget                DECIMAL(12,2) NULL,
-  jours_souhaites       SET('LUN','MAR','MER','JEU','VEN','SAM','DIM') NULL,
+  jours_souhaites       JSON NULL,
   caracteristiques_prof TEXT NULL,
   statut                ENUM('EN_ATTENTE','EN_RECHERCHE','ASSIGNEE','ANNULEE','REJETEE')
                         NOT NULL DEFAULT 'EN_ATTENTE',
@@ -94,15 +107,24 @@ CREATE TABLE demandes (
   PRIMARY KEY (id),
   KEY idx_demandes_statut (statut),
   KEY idx_demandes_client (client_id),
-  CONSTRAINT fk_demandes_client     FOREIGN KEY (client_id)     REFERENCES clients (user_id),
-  CONSTRAINT fk_demandes_ville      FOREIGN KEY (ville_id)      REFERENCES villes (id),
-  CONSTRAINT fk_demandes_specialite FOREIGN KEY (specialite_id) REFERENCES specialites (id),
-  CONSTRAINT fk_demandes_admin      FOREIGN KEY (traitee_par)   REFERENCES users (id),
+  KEY idx_demandes_ville (ville_id),
+  CONSTRAINT fk_demandes_client     FOREIGN KEY (client_id)   REFERENCES clients (user_id),
+  CONSTRAINT fk_demandes_ville      FOREIGN KEY (ville_id)    REFERENCES villes (id),
+  CONSTRAINT fk_demandes_admin      FOREIGN KEY (traitee_par) REFERENCES users (id),
   CONSTRAINT chk_demandes_budget    CHECK (budget IS NULL OR budget >= 0)
 ) ENGINE=InnoDB;
 
+-- Une demande peut concerner une ou plusieurs specialites (ex: Maths + Physique)
+CREATE TABLE demande_specialites (
+  demande_id     BIGINT UNSIGNED NOT NULL,
+  specialite_id  INT UNSIGNED    NOT NULL,
+  PRIMARY KEY (demande_id, specialite_id),
+  CONSTRAINT fk_ds_demande FOREIGN KEY (demande_id)    REFERENCES demandes (id)    ON DELETE CASCADE,
+  CONSTRAINT fk_ds_spec    FOREIGN KEY (specialite_id) REFERENCES specialites (id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 -- ------------------------------------------------------------
--- Assignation : le pivot (demande + prof + tarifs)
+-- Assignation : le pivot contractuel (demande + prof + tarifs)
 -- La colonne generee garantit UNE SEULE assignation ACTIVE par demande
 -- ------------------------------------------------------------
 CREATE TABLE assignations (
@@ -138,13 +160,13 @@ CREATE TABLE creneaux_hebdo (
   heure_fin      TIME NOT NULL,
   PRIMARY KEY (id),
   UNIQUE KEY uq_creneau (assignation_id, jour_semaine, heure_debut),
-  CONSTRAINT fk_creneaux_assignation FOREIGN KEY (assignation_id) REFERENCES assignations (id),
+  CONSTRAINT fk_creneaux_assignation FOREIGN KEY (assignation_id) REFERENCES assignations (id) ON DELETE CASCADE,
   CONSTRAINT chk_creneaux_jour  CHECK (jour_semaine BETWEEN 1 AND 7),
   CONSTRAINT chk_creneaux_heure CHECK (heure_fin > heure_debut)
 ) ENGINE=InnoDB;
 
 -- ------------------------------------------------------------
--- Seances : chaque jour de cours reel, avec son code secret
+-- Seances : chaque jour de cours reel avec son code secret d'emargement
 -- ------------------------------------------------------------
 CREATE TABLE seances (
   id                   BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -156,6 +178,9 @@ CREATE TABLE seances (
   tentatives_echouees  TINYINT UNSIGNED NOT NULL DEFAULT 0,
   statut               ENUM('PREVUE','EFFECTUEE','MANQUEE','ANNULEE') NOT NULL DEFAULT 'PREVUE',
   date_validation      DATETIME NULL,
+  motif_annulation     TEXT NULL,
+  created_at           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uq_seance (assignation_id, date_seance, heure_debut),
   KEY idx_seances_date (date_seance),
@@ -165,7 +190,8 @@ CREATE TABLE seances (
 ) ENGINE=InnoDB;
 
 -- ------------------------------------------------------------
--- Paiements : client vers admin, puis admin vers prof (par mois)
+-- Paiements : client vers admin, puis admin vers prof
+-- Les paiements echelonnes / en plusieurs tranches sont autorises
 -- ------------------------------------------------------------
 CREATE TABLE paiements (
   id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -177,10 +203,13 @@ CREATE TABLE paiements (
   mode            ENUM('MOBILE_MONEY','ESPECES','VIREMENT') NULL,
   reference       VARCHAR(100) NULL,
   statut          ENUM('EN_ATTENTE','PAYE') NOT NULL DEFAULT 'EN_ATTENTE',
+  commentaire     VARCHAR(255) NULL,
   date_paiement   DATETIME NULL,
   created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
-  UNIQUE KEY uq_paiement_mois (assignation_id, sens, annee, mois),
+  KEY idx_paiements_assignation_periode (assignation_id, sens, annee, mois),
+  KEY idx_paiements_statut (statut),
   CONSTRAINT fk_paiements_assignation FOREIGN KEY (assignation_id) REFERENCES assignations (id),
   CONSTRAINT chk_paiements_mois    CHECK (mois BETWEEN 1 AND 12),
   CONSTRAINT chk_paiements_montant CHECK (montant >= 0)

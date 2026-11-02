@@ -3,9 +3,12 @@ erDiagram
   USERS ||--o| PROFESSEURS : "est"
   CLIENTS ||--o{ DEMANDES : "soumet"
   VILLES ||--o{ DEMANDES : "ciblee par"
-  SPECIALITES ||--o{ DEMANDES : "concerne"
+  DEMANDES ||--o{ DEMANDE_SPECIALITES : "requiert"
+  SPECIALITES ||--o{ DEMANDE_SPECIALITES : "est requise"
   PROFESSEURS ||--o{ PROFESSEUR_SPECIALITES : "enseigne"
   SPECIALITES ||--o{ PROFESSEUR_SPECIALITES : "est enseignee"
+  PROFESSEURS ||--o{ PROFESSEUR_VILLES : "couvre"
+  VILLES ||--o{ PROFESSEUR_VILLES : "est couverte par"
   DEMANDES ||--o{ ASSIGNATIONS : "donne lieu a"
   PROFESSEURS ||--o{ ASSIGNATIONS : "effectue"
   ASSIGNATIONS ||--|{ CRENEAUX_HEBDO : "planning type"
@@ -18,7 +21,7 @@ erDiagram
     string nom
     string prenom
     string email UK
-    string telephone
+    string telephone UK
     string password_hash
     bool must_change_password
     enum statut
@@ -46,19 +49,28 @@ erDiagram
     bigint professeur_id PK
     int specialite_id PK
   }
+  PROFESSEUR_VILLES {
+    bigint professeur_id PK
+    int ville_id PK
+  }
   DEMANDES {
     bigint id PK
     bigint client_id FK
     int ville_id FK
-    int specialite_id FK
+    string quartier
+    string niveau_scolaire
     enum type_beneficiaire
     text description
     decimal budget
-    set jours_souhaites
+    json jours_souhaites
     text caracteristiques_prof
     enum statut
     bigint traitee_par FK
     text note_admin
+  }
+  DEMANDE_SPECIALITES {
+    bigint demande_id PK
+    int specialite_id PK
   }
   ASSIGNATIONS {
     bigint id PK
@@ -69,6 +81,7 @@ erDiagram
     decimal tarif_client
     decimal tarif_prof
     enum statut
+    bigint active_demande_id UK
   }
   CRENEAUX_HEBDO {
     bigint id PK
@@ -86,6 +99,7 @@ erDiagram
     char code_secret
     tinyint tentatives_echouees
     enum statut
+    text motif_annulation
     datetime date_validation
   }
   PAIEMENTS {
@@ -98,5 +112,6 @@ erDiagram
     enum mode
     string reference
     enum statut
+    string commentaire
     datetime date_paiement
   }

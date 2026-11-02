@@ -35,6 +35,8 @@ class Specialite {
 class DemandeProf {
   +id
   +typeBeneficiaire
+  +niveauScolaire
+  +quartier
   +description
   +budget
   +joursSouhaites
@@ -66,6 +68,7 @@ class Seance {
   +codeSecret
   +tentativesEchouees
   +statut
+  +motifAnnulation
   +dateValidation
   +validerPresence(code)
 }
@@ -78,6 +81,7 @@ class Paiement {
   +mode
   +reference
   +statut
+  +commentaire
   +datePaiement
 }
 
@@ -87,8 +91,9 @@ Utilisateur <|-- Professeur
 Client "1" --> "0..*" DemandeProf : soumet
 Administrateur "1" --> "0..*" DemandeProf : traite
 Ville "1" --> "0..*" DemandeProf : ciblee par
-Specialite "1" --> "0..*" DemandeProf : concerne
+DemandeProf "0..*" -- "1..*" Specialite : concerne
 Professeur "0..*" -- "1..*" Specialite : enseigne
+Professeur "0..*" -- "1..*" Ville : intervient dans
 DemandeProf "1" --> "0..*" Assignation : donne lieu a
 Professeur "1" --> "0..*" Assignation : effectue
 Assignation "1" *-- "1..*" CreneauHebdo : planning type
