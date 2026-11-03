@@ -2,7 +2,7 @@
 
 Deux vues du même modèle : le diagramme de classes (le métier) et le schéma relationnel MySQL (la base de données).
 
-> Source de vérité : [alloprof_diagramme_classes.mmd](alloprof_diagramme_classes.mmd), [alloprof_schema_erd.mmd](alloprof_schema_erd.mmd) et [alloprof_schema.sql](alloprof_schema.sql). Les diagrammes ci-dessous en sont des copies : modifier d'abord les `.mmd`.
+> Source de vérité des diagrammes : [alloprof_diagramme_classes.mmd](alloprof_diagramme_classes.mmd) et [alloprof_schema_erd.mmd](alloprof_schema_erd.mmd). Les diagrammes ci-dessous en sont des copies : modifier d'abord les `.mmd`.
 
 ## 1. Diagramme de classes
 
@@ -337,4 +337,4 @@ erDiagram
 8. **Notifications (`notifications`)** :
    - Notifications in-app par utilisateur (nouvelle demande pour l'admin, nouvelle assignation pour le prof et le client, code du jour disponible, blocage de validation…). `lu_le` NULL = non lue.
 
-Le script SQL complet prêt à être exécuté est dans [alloprof_schema.sql](alloprof_schema.sql).
+[alloprof_schema.sql](alloprof_schema.sql) est le schéma de conception initial. Depuis l'initialisation du backend, **ce sont les migrations (`migrations/`) qui font foi** pour la base de données.
