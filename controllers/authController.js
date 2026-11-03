@@ -1,27 +1,17 @@
-const { sequelize, User, Client, Professeur, Specialite, Ville, Niveau } = require('../models');
+const { sequelize, User, Client, Professeur } = require('../models');
 const { hashPassword, verifyPassword } = require('../utils/password');
 const { signAccessToken, issueUserToken, consumeUserToken } = require('../services/tokenService');
 const emailService = require('../services/emailService');
 const { telephone: telephoneSchema } = require('../validators/common');
+const q = require('../utils/query');
 const AppError = require('../utils/AppError');
-
-// Un objet neuf par include : Sequelize modifie `through` (il y attache la table de liaison)
-const sansLiaison = () => ({ attributes: [] });
 
 // Utilisateur + son profil (client ou professeur avec ses referentiels)
 function findUserWithProfile(id) {
   return User.findByPk(id, {
     include: [
       { model: Client, as: 'client' },
-      {
-        model: Professeur,
-        as: 'professeur',
-        include: [
-          { model: Specialite, as: 'specialites', through: sansLiaison() },
-          { model: Ville, as: 'villes', through: sansLiaison() },
-          { model: Niveau, as: 'niveaux', through: sansLiaison() },
-        ],
-      },
+      { model: Professeur, as: 'professeur', include: q.referentielsProf() },
     ],
   });
 }

@@ -1,7 +1,10 @@
-// Valide (et normalise) req.body avec un schema Zod ; une ZodError part dans errorHandler
-function validate(schema) {
+// Valide (et normalise) req.body ou req.query avec un schema Zod ;
+// une ZodError part dans errorHandler
+function validate(schema, source = 'body') {
   return (req, res, next) => {
-    req.body = schema.parse(req.body ?? {});
+    const parsed = schema.parse(req[source] ?? {});
+    // Express 5 : req.query est un getter en lecture seule, on le masque
+    Object.defineProperty(req, source, { value: parsed, writable: true, configurable: true, enumerable: true });
     next();
   };
 }

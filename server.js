@@ -2,6 +2,7 @@ require('dotenv').config({ quiet: true });
 
 const app = require('./app');
 const { sequelize } = require('./models');
+const { startScheduler } = require('./jobs/scheduler');
 
 const PORT = Number(process.env.PORT) || 4000;
 
@@ -22,6 +23,8 @@ async function start() {
   const server = app.listen(PORT, () => {
     console.log(`AlloProf API demarree sur http://localhost:${PORT}/api`);
   });
+
+  if (process.env.DISABLE_JOBS !== 'true') startScheduler();
 
   const shutdown = async () => {
     server.close();
