@@ -4,10 +4,20 @@ module.exports = (sequelize, DataTypes) => {
     role: { type: DataTypes.ENUM('ADMIN', 'CLIENT', 'PROFESSEUR'), allowNull: false },
     nom: { type: DataTypes.STRING(100), allowNull: false },
     prenom: { type: DataTypes.STRING(100), allowNull: false },
-    email: { type: DataTypes.STRING(190), allowNull: false, unique: true },
-    telephone: { type: DataTypes.STRING(30), allowNull: false, unique: true },
+    email: {
+      type: DataTypes.STRING(190),
+      allowNull: false,
+      unique: { name: 'uq_users_email', msg: 'Cet email est deja utilise' },
+    },
+    telephone: {
+      type: DataTypes.STRING(30),
+      allowNull: false,
+      unique: { name: 'uq_users_telephone', msg: 'Ce numero de telephone est deja utilise' },
+    },
     passwordHash: { type: DataTypes.STRING(255), allowNull: true },
     mustChangePassword: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    // Les JWT emis avant cette date sont refuses (voir middleware/auth.js)
+    passwordChangedAt: { type: DataTypes.DATE, allowNull: true },
     statut: { type: DataTypes.ENUM('ACTIF', 'SUSPENDU'), allowNull: false, defaultValue: 'ACTIF' },
   }, {
     tableName: 'users',

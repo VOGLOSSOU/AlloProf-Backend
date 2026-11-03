@@ -27,6 +27,7 @@
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.24.6",
+    "nodemailer": "^10.3.1",
     "sequelize": "^6.37.8",
     "zod": "^4.6.7"
   },
@@ -34,5 +35,10 @@
     "jest": "^30.5.2",
     "sequelize-cli": "^6.6.5",
     "supertest": "^7.3.1"
+  },
+  "jest": {
+    "setupFiles": [
+      "<rootDir>/tests/setup.js"
+    ]
   }
 }

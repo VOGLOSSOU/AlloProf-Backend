@@ -1,7 +1,7 @@
 module.exports = (sequelize, DataTypes) => {
   const Specialite = sequelize.define('Specialite', {
     id: { type: DataTypes.INTEGER.UNSIGNED, primaryKey: true, autoIncrement: true },
-    libelle: { type: DataTypes.STRING(120), allowNull: false, unique: true },
+    libelle: { type: DataTypes.STRING(120), allowNull: false, unique: { name: 'uq_specialites_libelle', msg: 'Cette specialite existe deja' } },
     estActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
   }, {
     tableName: 'specialites',

@@ -15,6 +15,16 @@ const base = {
     freezeTableName: true,
     timestamps: false,
   },
+  hooks: {
+    // Certains hebergeurs (Hostinger) n'activent pas le mode strict : sans lui,
+    // une valeur invalide (ENUM inconnu, texte trop long) est tronquee en silence
+    afterConnect: (connection) => new Promise((resolve, reject) => {
+      connection.query(
+        "SET SESSION sql_mode = 'STRICT_ALL_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'",
+        (err) => (err ? reject(err) : resolve()),
+      );
+    }),
+  },
 };
 
 module.exports = {

@@ -40,6 +40,24 @@ docs/          cahier des charges et modélisation
 - Les erreurs métier se lèvent avec `AppError` (`throw AppError.notFound('Demande introuvable')`) ; le middleware `errorHandler` traduit aussi les erreurs Zod et Sequelize en réponses JSON propres.
 - `User.toJSON()` retire `passwordHash` et `Seance.toJSON()` retire `codeSecret` : le code n'est renvoyé explicitement qu'au client concerné.
 
+## Authentification
+
+JWT dans l'en-tête `Authorization: Bearer <token>`. Changer son mot de passe invalide tous les jetons émis avant.
+
+| Méthode | Route | Accès | Rôle |
+|---|---|---|---|
+| POST | `/api/auth/register` | public | Inscription d'un client |
+| POST | `/api/auth/login` | public | Connexion par email **ou** téléphone (`identifiant`, `password`) |
+| GET | `/api/auth/me` | connecté | Utilisateur + profil |
+| POST | `/api/auth/password/change` | connecté | Renvoie un nouveau jeton |
+| POST | `/api/auth/password/forgot` | public | Envoie un lien de reset (valable 1 h) |
+| POST | `/api/auth/password/reset` | public | `token` + nouveau `password` |
+| POST | `/api/auth/invitation/accept` | public | Le prof choisit son mot de passe (lien valable 7 j) |
+| POST | `/api/admin/professeurs` | admin | Crée un prof + invitation ; renvoie aussi le lien à transmettre |
+| POST | `/api/admin/professeurs/:id/invitation` | admin | Régénère l'invitation |
+
+Les routes publiques sensibles sont limitées à 10 requêtes / 15 min / IP. Sans `SMTP_HOST`, les emails s'affichent dans la console.
+
 ## Documentation
 
 La modélisation et les règles de gestion sont dans [docs/alloprof_modelisation.md](docs/alloprof_modelisation.md).

@@ -6,6 +6,11 @@ const { sequelize } = require('./models');
 const PORT = Number(process.env.PORT) || 4000;
 
 async function start() {
+  if (!process.env.JWT_SECRET) {
+    console.error('JWT_SECRET manquant dans .env');
+    process.exit(1);
+  }
+
   try {
     await sequelize.authenticate();
     console.log('Connexion MySQL OK');

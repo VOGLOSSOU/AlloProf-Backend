@@ -42,8 +42,8 @@ function errorHandler(err, req, res, next) {
     });
   }
 
-  // Violation d'une contrainte CHECK MySQL (ER_CHECK_CONSTRAINT_VIOLATED)
-  if (err instanceof DatabaseError && err.original?.errno === 3819) {
+  // Violation d'une contrainte CHECK : 3819 sous MySQL, 4025 sous MariaDB
+  if (err instanceof DatabaseError && [3819, 4025].includes(err.original?.errno)) {
     return res.status(400).json({ message: 'Donnees incoherentes', details: err.original.sqlMessage });
   }
 

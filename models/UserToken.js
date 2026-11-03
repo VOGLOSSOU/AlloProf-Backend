@@ -4,7 +4,7 @@ module.exports = (sequelize, DataTypes) => {
     userId: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
     type: { type: DataTypes.ENUM('INVITATION', 'RESET_PASSWORD', 'OTP'), allowNull: false },
     // Empreinte SHA-256 du jeton : le jeton en clair n'est jamais stocke
-    tokenHash: { type: DataTypes.CHAR(64), allowNull: false, unique: true },
+    tokenHash: { type: DataTypes.CHAR(64), allowNull: false, unique: 'uq_user_tokens_hash' },
     tentatives: { type: DataTypes.TINYINT.UNSIGNED, allowNull: false, defaultValue: 0 },
     expiresAt: { type: DataTypes.DATE, allowNull: false },
     usedAt: { type: DataTypes.DATE, allowNull: true },
