@@ -60,13 +60,15 @@ Toutes les routes sont préfixées par `/api`. JWT dans l'en-tête `Authorizatio
 | POST | `/auth/login` | Connexion par email **ou** téléphone (`identifiant`, `password`) |
 | GET | `/auth/me` | Utilisateur connecté + profil |
 | POST | `/auth/password/change` | Renvoie un nouveau jeton |
-| POST | `/auth/password/forgot` | Lien de reset (valable 1 h) |
+| POST | `/auth/password/forgot` | Lien de reset par email (valable 1 h). **En attente** : pas de SMTP configuré pour l'instant |
 | POST | `/auth/password/reset` | `token` + nouveau `password` |
 | POST | `/auth/invitation/accept` | Le prof choisit son mot de passe (lien valable 7 j) |
 | GET | `/notifications?nonLues=true` | Notifications de l'utilisateur connecté (+ compteur `nonLues`) |
 | POST | `/notifications/:id/lire` · `/notifications/lire-tout` | Marquer comme lu |
 
-Connexion, inscription, reset et invitation sont limités à 10 requêtes / 15 min / IP. Sans `SMTP_HOST`, les emails s'affichent dans la console.
+Connexion, inscription, reset et invitation sont limités à 10 requêtes / 15 min / IP.
+
+**Emails : désactivés pour l'instant.** L'invitation des profs ne passe pas par email : l'API renvoie le lien (et un message prêt à coller) à l'admin, qui l'envoie au prof par WhatsApp. Seul « mot de passe oublié » utilise l'email ; son code est conservé, et sans variables `SMTP_*` le message est seulement écrit dans les logs. Pour l'activer plus tard : ajouter `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` et `MAIL_FROM` au `.env` (voir `services/emailService.js`).
 
 ### Client (`/client`, rôle CLIENT)
 

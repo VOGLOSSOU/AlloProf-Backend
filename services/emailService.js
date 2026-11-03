@@ -15,7 +15,8 @@ function getTransporter() {
   return transporter;
 }
 
-// Sans SMTP configure (dev), l'email est simplement affiche dans la console
+// Seul le reset de mot de passe passe par l'email (fonctionnalite en attente).
+// Sans SMTP configure, l'email est simplement affiche dans la console.
 async function sendMail({ to, subject, text }) {
   const smtp = getTransporter();
   if (!smtp) {
@@ -34,22 +35,6 @@ function invitationLink(token) {
   return frontUrl(`/invitation?token=${encodeURIComponent(token)}`);
 }
 
-function sendInvitation(user, token) {
-  return sendMail({
-    to: user.email,
-    subject: 'Bienvenue sur AlloProf - activez votre compte professeur',
-    text: [
-      `Bonjour ${user.prenom},`,
-      '',
-      'Votre compte professeur AlloProf a ete cree.',
-      'Cliquez sur ce lien pour choisir votre mot de passe (valable 7 jours) :',
-      invitationLink(token),
-      '',
-      "L'equipe AlloProf",
-    ].join('\n'),
-  });
-}
-
 function sendPasswordReset(user, token) {
   return sendMail({
     to: user.email,
@@ -65,4 +50,4 @@ function sendPasswordReset(user, token) {
   });
 }
 
-module.exports = { sendInvitation, sendPasswordReset, invitationLink };
+module.exports = { sendPasswordReset, invitationLink };

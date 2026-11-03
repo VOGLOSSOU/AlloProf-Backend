@@ -106,12 +106,11 @@ Cliquer sur une notification la marque comme lue (`POST /notifications/:id/lire`
 
 ### `/connexion`
 - Champ unique « Email ou téléphone » et mot de passe. Appelle `POST /auth/login`, puis redirige selon le rôle (ou vers `?next=`).
-- Lien « Mot de passe oublié ? ».
+- Pas de lien « Mot de passe oublié ? » pour l'instant (fonctionnalité en attente) : afficher à la place « Mot de passe oublié ? Contactez AlloProf. »
 - Sur un 401, afficher « Email/téléphone ou mot de passe incorrect ».
 
-### `/mot-de-passe-oublie` et `/reset-password?token=`
-- Mot de passe oublié : `POST /auth/password/forgot`. Afficher toujours le même message de confirmation.
-- Reset : champ nouveau mot de passe et confirmation, puis `POST /auth/password/reset`, puis redirection vers `/connexion` avec un toast. Sur un 400, afficher « Ce lien est invalide ou a expiré » et un lien vers mot de passe oublié.
+### Mot de passe oublié — EN ATTENTE, ne pas construire
+Dépend de l'envoi d'emails, désactivé pour l'instant. Pour plus tard : pages `/mot-de-passe-oublie` (`POST /auth/password/forgot`) et `/reset-password?token=` (`POST /auth/password/reset`).
 
 ### `/invitation?token=` — Activation du compte prof
 - Message « Bienvenue sur AlloProf, choisissez votre mot de passe », champs mot de passe et confirmation.
@@ -239,14 +238,14 @@ Deux colonnes.
 ### `/admin/professeurs/nouveau`
 - Formulaire : nom, prénom, email, téléphone, bio, et choix multiples pour matières, villes et niveaux (au moins un de chaque). Accepte un pré-remplissage par paramètres d'URL.
 - Appelle `POST /admin/professeurs`. En cas de succès, une boîte de dialogue « **Invitation créée** » affiche :
-  - le lien (`invitation.lien`) ;
-  - les boutons « Copier le lien » et « Envoyer par WhatsApp » au téléphone du prof (message : « Bonjour {prenom}, voici votre lien pour activer votre compte AlloProf : {lien} ») ;
-  - la date d'expiration ;
-  - si `emailEnvoye === false`, la mention « Email non envoyé, transmettez le lien vous-même ».
+  - l'instruction « Envoyez ce message au professeur sur WhatsApp : c'est grâce à lui qu'il activera son compte » (aucun email n'est envoyé) ;
+  - le message prêt à envoyer (`invitation.message`, qui contient le lien) dans une zone de texte en lecture seule ;
+  - les boutons « **Copier le message** », « Copier le lien » (`invitation.lien`) et « **Envoyer sur WhatsApp** » (ouvre `https://wa.me/<numéro>?text=<message encodé>` avec le téléphone du prof) ;
+  - la date d'expiration (« Lien valable jusqu'au … »).
 
 ### `/admin/professeurs/[id]`
 - Fiche du prof (`GET /admin/professeurs/:id`), modifiable (`PATCH`) : infos, bio, interrupteur de disponibilité, référentiels.
-- « Renvoyer l'invitation », si `compteActive === 0`, ouvre la même boîte de dialogue que ci-dessus.
+- « Générer un nouveau lien d'invitation », si `compteActive === 0` (le prof a perdu le lien ou il a expiré), ouvre la même boîte de dialogue que ci-dessus.
 - « Suspendre le compte » ou « Réactiver » via `PATCH /admin/users/:id/statut`.
 - La liste de ses assignations, avec un lien vers chacune.
 

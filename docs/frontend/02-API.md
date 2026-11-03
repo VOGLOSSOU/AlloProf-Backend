@@ -221,10 +221,11 @@ Crée un **client** et le connecte.
 ```
 **Remplacer le token stocké** : l'ancien token est invalidé. Erreur 400 `Mot de passe actuel incorrect`.
 
-### `POST /auth/password/forgot` — public, limité
+### `POST /auth/password/forgot` — public, limité — **EN ATTENTE, ne pas utiliser**
+Cette fonctionnalité dépend de l'envoi d'emails, désactivé pour l'instant : la route existe, mais aucun email ne part. Documentée pour plus tard.
 `{ email }` donne toujours 200 `{ message }`, que le compte existe ou non. Un lien `FRONT_URL/reset-password?token=...` part par email.
 
-### `POST /auth/password/reset` — public, limité
+### `POST /auth/password/reset` — public, limité — **EN ATTENTE, ne pas utiliser**
 `{ token, password }` donne 200 `{ message }`. 400 `Lien invalide ou expire` (lien valable 1 h, à usage unique). Rediriger ensuite vers `/connexion`.
 
 ### `POST /auth/invitation/accept` — public, limité
@@ -397,10 +398,10 @@ Professeur & { user: UserPublic & { compteActive: 0 | 1 }; specialites; villes; 
 // 201
 {
   professeur: User;   // ATTENTION : c'est un User (role PROFESSEUR), le profil est dans professeur.professeur
-  invitation: { lien: string; expireLe: string; emailEnvoye: boolean };
+  invitation: { lien: string; expireLe: string; message: string }; // message = texte prêt à coller dans WhatsApp, lien compris
 }
 ```
-Toujours **afficher le lien** avec des boutons « Copier » et « Partager sur WhatsApp » (`https://wa.me/<telephone sans +>?text=<message encodé>`). Le faire en particulier si `emailEnvoye` vaut `false`, ce qui est le cas en dev.
+**Aucun email n'est envoyé** : c'est l'admin qui transmet le lien au prof. Afficher le lien et le message avec les boutons « Copier le message », « Copier le lien » et « Envoyer sur WhatsApp » (`https://wa.me/<numéro international sans +>?text=${encodeURIComponent(message)}`).
 
 #### `GET /admin/professeurs/:id`
 `Professeur` + `user` (avec `compteActive`) + référentiels + `assignations[]`, chacune avec sa `demande` complète (client et user) et ses `creneaux`, plus récentes d'abord.
@@ -413,7 +414,7 @@ Toujours **afficher le lien** avec des boutons « Copier » et « Partager sur W
 ```
 
 #### `POST /admin/professeurs/:id/invitation`
-200 `{ invitation: { lien, expireLe, emailEnvoye } }`. L'ancien lien devient invalide. 409 si le compte est déjà activé.
+200 `{ invitation: { lien, expireLe, message } }`. Génère un **nouveau** lien : l'ancien devient invalide. Sert si le prof a perdu le lien ou s'il a expiré (7 jours). 409 si le compte est déjà activé.
 
 ### Clients et comptes
 

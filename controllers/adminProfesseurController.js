@@ -28,16 +28,16 @@ async function assertReferentiels({ specialiteIds, villeIds, niveauIds }) {
   if (niveauIds) await assertActiveIds(Niveau, niveauIds, 'niveauIds');
 }
 
-// Envoie l'invitation par email et renvoie aussi le lien a l'admin,
-// pour qu'il puisse le transmettre lui-meme (WhatsApp, SMS...)
-async function sendInvitation(user, { token, expiresAt }) {
-  let emailEnvoye = false;
-  try {
-    emailEnvoye = await emailService.sendInvitation(user, token);
-  } catch (err) {
-    console.error('Email invitation :', err);
-  }
-  return { lien: emailService.invitationLink(token), expireLe: expiresAt, emailEnvoye };
+// Pas d'email pour l'instant : l'admin copie le lien (ou le message pret a coller)
+// et l'envoie lui-meme au prof par WhatsApp
+function invitationPourAdmin(user, { token, expiresAt }) {
+  const lien = emailService.invitationLink(token);
+  return {
+    lien,
+    expireLe: expiresAt,
+    message: `Bonjour ${user.prenom}, votre compte professeur AlloProf a ete cree. `
+      + `Activez-le en choisissant votre mot de passe avec ce lien (valable 7 jours) : ${lien}`,
+  };
 }
 
 async function list(req, res) {
@@ -107,7 +107,7 @@ async function create(req, res) {
 
   res.status(201).json({
     professeur: await findUserWithProfile(user.id),
-    invitation: await sendInvitation(user, invitation),
+    invitation: invitationPourAdmin(user, invitation),
   });
 }
 
@@ -137,7 +137,7 @@ async function resendInvitation(req, res) {
   if (user.passwordHash) throw AppError.conflict('Ce professeur a deja active son compte');
 
   const invitation = await issueUserToken(user.id, 'INVITATION');
-  res.json({ invitation: await sendInvitation(user, invitation) });
+  res.json({ invitation: invitationPourAdmin(user, invitation) });
 }
 
 module.exports = { list, get, create, update, resendInvitation };

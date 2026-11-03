@@ -46,9 +46,8 @@ L'API est un backend séparé (Express) : Next.js sert ici d'application cliente
 - URL de l'API dans `.env.local` : `NEXT_PUBLIC_API_URL=http://localhost:4000/api`.
 - Le backend tourne avec `npm run dev` dans `../AlloProf-Backend` (port 4000). Il est déjà branché sur une base MariaDB de dev hébergée chez Hostinger.
 - **CORS** : le backend autorise les origines listées dans `CORS_ORIGINS` (son `.env`), par défaut `http://localhost:3000` et `http://localhost:5173`. Si le front tourne sur un autre port, il faut l'ajouter là-bas.
-- **Liens envoyés par email** : le backend construit les liens avec `FRONT_URL` (par défaut `http://localhost:3000`). Le front **doit** donc avoir ces deux routes exactes :
-  - `/invitation?token=...` : activation du compte prof ;
-  - `/reset-password?token=...` : nouveau mot de passe.
+- **Lien d'invitation des profs** : le backend le construit avec `FRONT_URL` (par défaut `http://localhost:3000`) sous la forme `/invitation?token=...`. Le front **doit** avoir cette route exacte.
+- **Pas d'email pour l'instant.** L'invitation n'est pas envoyée par email : l'API renvoie le lien à l'admin, qui le **copie et l'envoie au prof par WhatsApp**. Le « mot de passe oublié » (qui, lui, passe par email) est **mis de côté** : ne pas construire ses pages pour l'instant (voir `03-ECRANS-ET-PARCOURS.md`).
 
 ### Client HTTP
 
@@ -81,8 +80,6 @@ app/
     page.tsx                      accueil
     connexion/page.tsx
     inscription/page.tsx
-    mot-de-passe-oublie/page.tsx
-    reset-password/page.tsx       ?token=
     invitation/page.tsx           ?token=  (activation prof)
   client/                         layout mobile + RequireRole CLIENT
     page.tsx                      tableau de bord (code du jour en premier)
@@ -153,12 +150,12 @@ Il n'y a pas encore de maquette ni de charte : partir sur un design **sobre, cla
 3. **Admin, cœur du métier** : liste et détail des demandes, changement de statut, création de prof (avec affichage et copie du lien d'invitation), profs compatibles, **création d'assignation avec l'éditeur de créneaux**.
 4. **Prof et code du jour** : page `/invitation`, séances du jour et validation par code côté prof, code du jour côté client, calendriers mensuels.
    - Le parcours complet est alors démontrable : demande → assignation → séance validée.
-5. **Le reste** : détail d'assignation (planning, suspension, fin, séances, récap), paiements (admin, client, prof), notifications (cloche et liste), référentiels, listes profs et clients, suspension de compte, mot de passe oublié, page d'accueil.
+5. **Le reste** : détail d'assignation (planning, suspension, fin, séances, récap), paiements (admin, client, prof), notifications (cloche et liste), référentiels, listes profs et clients, suspension de compte, page d'accueil.
 
 ## 9. Comptes pour tester
 
 - **Admin** : `gilbert@alloprof.com`. Le mot de passe est dans le `.env` du backend (`ADMIN_PASSWORD`) ; ne jamais le recopier dans le code du front.
 - **Client** : en créer un via `/inscription`.
-- **Prof** : le créer depuis l'admin. Sans SMTP configuré, l'email n'est pas envoyé, mais la réponse de création contient `invitation.lien` : l'ouvrir dans le navigateur pour activer le compte.
+- **Prof** : le créer depuis l'admin. La réponse contient `invitation.lien` : l'ouvrir en navigation privée pour activer le compte, comme le ferait le prof depuis WhatsApp.
 - Pour tester le code du jour, l'assignation doit avoir un créneau **le jour de la semaine actuel**, avec `dateDebut` égale à aujourd'hui ou avant.
-- Limite anti-abus : 10 tentatives par 15 minutes et par IP sur connexion, inscription, mot de passe oublié, reset et invitation. Au-delà, l'API renvoie un **429**. Redémarrer le backend remet le compteur à zéro.
+- Limite anti-abus : 10 tentatives par 15 minutes et par IP sur connexion, inscription et invitation. Au-delà, l'API renvoie un **429**. Redémarrer le backend remet le compteur à zéro.
