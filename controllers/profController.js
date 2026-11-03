@@ -7,12 +7,18 @@ const { monthBounds } = require('../utils/dates');
 // Le prof voit son propre tarif, jamais celui facture au client
 const ATTRIBUTS_ASSIGNATION = ['id', 'demandeId', 'statut', 'dateDebut', 'dateFin', 'uniteTarif', 'tarifProf'];
 
+// Ni le budget du client ni la note interne de l'admin
+const demandePourProf = () => ({
+  ...q.demandeComplete(),
+  attributes: { exclude: ['budget', 'noteAdmin', 'traiteePar'] },
+});
+
 async function assignations(req, res) {
   const { statut } = req.query;
   res.json(await Assignation.findAll({
     where: { professeurId: req.user.id, ...(statut ? { statut } : { statut: { [Op.ne]: 'TERMINEE' } }) },
     attributes: ATTRIBUTS_ASSIGNATION,
-    include: [q.demandeComplete(), q.creneaux()],
+    include: [demandePourProf(), q.creneaux()],
     order: [['dateDebut', 'DESC'], ...q.ORDRE_CRENEAUX],
   }));
 }
@@ -27,7 +33,7 @@ async function calendrier(req, res) {
       as: 'assignation',
       attributes: ['id', 'statut', 'demandeId'],
       where: { professeurId: req.user.id },
-      include: [q.demandeComplete()],
+      include: [demandePourProf()],
     }],
     order: [['dateSeance', 'ASC'], ['heureDebut', 'ASC']],
   }));

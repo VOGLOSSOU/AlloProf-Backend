@@ -17,9 +17,13 @@ const assignationPourClient = () => ({
   include: [q.professeurAvecUser(), q.creneaux()],
 });
 
+// La note interne de l'admin et l'id de l'admin ne sont pas montres au client
+const ATTRIBUTS_DEMANDE = { exclude: ['noteAdmin', 'traiteePar'] };
+
 function findDemande(id, clientId) {
   return Demande.findOne({
     where: { id, clientId },
+    attributes: ATTRIBUTS_DEMANDE,
     include: [...q.detailsDemande(), assignationPourClient()],
     order: [[{ model: Assignation, as: 'assignations' }, 'createdAt', 'DESC']],
   });
@@ -50,6 +54,7 @@ async function listDemandes(req, res) {
   const { statut, page, limit } = req.query;
   const result = await Demande.findAndCountAll({
     where: { clientId: req.user.id, ...(statut && { statut }) },
+    attributes: ATTRIBUTS_DEMANDE,
     include: q.detailsDemande(),
     order: [['createdAt', 'DESC']],
     distinct: true,
@@ -80,7 +85,7 @@ async function annulerDemande(req, res) {
       data: { demandeId: demande.id },
     }, { transaction });
   });
-  res.json(demande);
+  res.json(await findDemande(demande.id, req.user.id));
 }
 
 // Assignations du client : via ses demandes
