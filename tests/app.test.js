@@ -5,6 +5,12 @@ const models = require('../models');
 afterAll(() => models.sequelize.close());
 
 describe('API', () => {
+  it("GET / affiche un message d'accueil", async () => {
+    const res = await request(app).get('/');
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ message: "Bienvenue sur l'API AlloProf", statut: 'en ligne', sante: '/api/health' });
+  });
+
   it('GET /api/health repond ok', async () => {
     const res = await request(app).get('/api/health');
     expect(res.status).toBe(200);
