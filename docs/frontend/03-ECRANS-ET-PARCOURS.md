@@ -106,7 +106,8 @@ Cliquer sur une notification la marque comme lue (`POST /notifications/:id/lire`
 
 ### `/connexion`
 - Champ unique « Email ou téléphone » et mot de passe. Appelle `POST /auth/login`, puis redirige selon le rôle (ou vers `?next=`).
-- Pas de lien « Mot de passe oublié ? » pour l'instant (fonctionnalité en attente) : afficher à la place « Mot de passe oublié ? Contactez AlloProf. »
+- Rien sur le mot de passe oublié pour l'instant (fonctionnalité en attente) : ni lien, ni texte.
+- En bas de page : « Pas encore de compte ? Créer un compte » (lien vers `/inscription`).
 - Sur un 401, afficher « Email/téléphone ou mot de passe incorrect ».
 
 ### Mot de passe oublié — EN ATTENTE, ne pas construire

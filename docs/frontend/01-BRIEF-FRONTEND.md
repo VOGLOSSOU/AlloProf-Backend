@@ -136,9 +136,9 @@ hooks/                            hooks TanStack Query par domaine (useDemandes,
 
 ## 7. Design
 
-Il n'y a pas encore de maquette ni de charte : partir sur un design **sobre, clair et professionnel**, facile à rhabiller ensuite.
+Il n'y a pas encore de maquette : rester sur un design **sobre, clair et professionnel**, dans le respect de l'identité visuelle.
 
-- Une couleur primaire (variable CSS shadcn, ex. bleu `#2563EB`), des fonds clairs, des cartes arrondies.
+- Couleurs et logo : voir `identite-visuelle/README.md`. Fonds clairs, cartes arrondies.
 - Client et prof : **mobile-first**, gros boutons, navigation en barre en bas (4 entrées max). La plupart des utilisateurs sont sur téléphone, parfois avec une connexion lente : peu d'images, pages légères.
 - Admin : sidebar à gauche et tableaux denses avec filtres (`DataTable` de shadcn).
 - Les statuts s'affichent toujours en **badges colorés** (couleurs dans `03-ECRANS-ET-PARCOURS.md`).
